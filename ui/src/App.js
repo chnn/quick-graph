@@ -1,19 +1,33 @@
 import React, { Component } from "react";
 import "./App.css";
 import Graph from "./Graph";
-
-const GRAPH_FIXTURE = {
-  name: "My Graph",
-  nodes: [{ id: "a", label: "a" }, { id: "b" }, { id: "c" }],
-  edges: [{ source: "a", target: "b" }, { source: "b", target: "c" }]
-};
+import LoadingSpinner from "./LoadingSpinner";
+import { fetchGraph } from "./api";
 
 class App extends Component {
+  constructor() {
+    super(...arguments);
+
+    this.state = {};
+  }
+
+  async componentWillMount() {
+    const resp = await fetchGraph();
+
+    this.setState({ graph: resp.data });
+  }
+
   render() {
+    const { graph } = this.state;
+
+    if (!graph) {
+      return <LoadingSpinner />;
+    }
+
     return (
       <div className="App">
-        {GRAPH_FIXTURE.name && <h1>{GRAPH_FIXTURE.name}</h1>}
-        <Graph nodes={GRAPH_FIXTURE.nodes} edges={GRAPH_FIXTURE.edges} />
+        {graph.name && <h1>{graph.name}</h1>}
+        <Graph nodes={graph.nodes} edges={graph.edges} />
       </div>
     );
   }

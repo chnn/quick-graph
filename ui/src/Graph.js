@@ -5,8 +5,8 @@ import * as d3 from "d3";
 import debounce from "lodash/debounce";
 import { setCanvasDimensions } from "./utils";
 
-const NODE_RADIUS = 10;
-const NODE_DISTANCE = 100;
+const NODE_RADIUS = 5;
+const NODE_DISTANCE = 30;
 const NODE_FILL = "#dfe6e9";
 const NODE_STROKE = "#636e72";
 const NODE_STROKE_WIDTH = 2;
