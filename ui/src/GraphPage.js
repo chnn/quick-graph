@@ -1,10 +1,10 @@
 import React, { Component } from "react";
-import "./App.css";
+import "./GraphPage.css";
 import Graph from "./Graph";
 import LoadingSpinner from "./LoadingSpinner";
 import { fetchGraph } from "./api";
 
-class App extends Component {
+class GraphPage extends Component {
   constructor() {
     super(...arguments);
 
@@ -12,7 +12,8 @@ class App extends Component {
   }
 
   async componentWillMount() {
-    const resp = await fetchGraph();
+    const { id } = this.props.match.params;
+    const resp = await fetchGraph(id);
 
     this.setState({ graph: resp.data });
   }
@@ -25,7 +26,7 @@ class App extends Component {
     }
 
     return (
-      <div className="App">
+      <div className="GraphPage">
         {graph.name && <h1>{graph.name}</h1>}
         <Graph nodes={graph.nodes} edges={graph.edges} />
       </div>
@@ -33,4 +34,4 @@ class App extends Component {
   }
 }
 
-export default App;
+export default GraphPage;
