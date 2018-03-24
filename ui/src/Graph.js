@@ -5,7 +5,7 @@ import * as d3 from "d3";
 import debounce from "lodash/debounce";
 import { setCanvasDimensions } from "./utils";
 
-const NODE_RADIUS = 5;
+const NODE_PADDING = 4;
 const NODE_DISTANCE = 30;
 const NODE_FILL = "#dfe6e9";
 const NODE_STROKE = "#636e72";
@@ -13,7 +13,8 @@ const NODE_STROKE_WIDTH = 2;
 const EDGE_STROKE = "#636e72";
 const EDGE_STROKE_WIDTH = 2;
 const NODE_LABEL_FILL = "#2d3436";
-const NODE_LABEL_FONT = "bold 16px Helvetica, serif";
+const NODE_LABEL_FONT = "bold 12px Helvetica, serif";
+const NODE_LABEL_HEIGHT = 12;
 
 class Graph extends Component {
   windowDidResize = debounce(this.renderD3.bind(this), 100);
@@ -73,26 +74,31 @@ class Graph extends Component {
 
       // Draw nodes
       context.beginPath();
-      nodes.forEach(node => {
-        context.moveTo(node.x + NODE_RADIUS, node.y);
-        context.arc(node.x, node.y, NODE_RADIUS, 0, 2 * Math.PI);
-      });
-      context.fillStyle = NODE_FILL;
-      context.fill();
-      context.lineWidth = NODE_STROKE_WIDTH;
-      context.strokeStyle = NODE_STROKE;
-      context.stroke();
 
-      // Draw node labels
-      context.beginPath();
       context.font = NODE_LABEL_FONT;
       context.textAlign = "center";
       context.textBaseline = "middle";
-      context.fillStyle = NODE_LABEL_FILL;
+      context.lineWidth = NODE_STROKE_WIDTH;
+      context.strokeStyle = NODE_STROKE;
+
       nodes.forEach(node => {
-        if (node.label) {
-          context.fillText(node.label, node.x, node.y);
-        }
+        const label = node.label || node.id;
+        const { width } = context.measureText(label);
+
+        const rect = [
+          node.x - width / 2 - NODE_PADDING,
+          node.y - NODE_LABEL_HEIGHT / 2 - NODE_PADDING,
+          width + 2 * NODE_PADDING,
+          NODE_LABEL_HEIGHT + 2 * NODE_PADDING
+        ];
+
+        context.fillStyle = NODE_FILL;
+        context.fillRect(...rect);
+        context.strokeRect(...rect);
+
+        context.fillStyle = NODE_LABEL_FILL;
+        context.fillText(label, node.x, node.y);
+        context.fill();
       });
     };
 
