@@ -3,15 +3,17 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
 import debounce from "lodash/debounce";
+import * as geometry from "./geometry";
 
 const NODE_PADDING = 4;
-const NODE_DISTANCE = 30;
+const NODE_DISTANCE = 80;
 const NODE_FILL = "#dfe6e9";
 const NODE_STROKE = "#636e72";
 const NODE_STROKE_WIDTH = 1;
 const NODE_TEXT_FILL = "#2d3436";
 const EDGE_STROKE = "#636e72";
 const EDGE_STROKE_WIDTH = 1;
+const EDGE_CURVATURE = 30;
 
 const truncate = (text, k = 5) => {
   if (text.length < k + 2) {
@@ -25,6 +27,8 @@ class Graph extends Component {
   windowDidResize = debounce(this.renderD3.bind(this), 100);
 
   componentDidMount() {
+    // FIXME: Should clone props, then mutate and setState
+    this.prepareGraphData(this.props);
     this.renderD3();
     window.addEventListener("resize", this.windowDidResize);
   }
@@ -33,8 +37,24 @@ class Graph extends Component {
     window.removeEventListener("resize", this.windowDidResize);
   }
 
-  componentWillUpdate(/* prevProps, prevState */) {
-    this.renderD3();
+  prepareGraphData({ edges }) {
+    const edgeGroupIndices = {};
+    const edgeKey = edge => `(${edge.source}, ${edge.target})`;
+
+    edges.forEach(edge => {
+      const k = edgeKey(edge);
+      const a = edgeGroupIndices[k] || 0;
+
+      edge.groupIndex = a;
+
+      if (a === 0) {
+        edgeGroupIndices[k] = 1;
+      } else if (a > 0) {
+        edgeGroupIndices[k] = -a;
+      } else if (a < 0) {
+        edgeGroupIndices[k] = Math.abs(a) + 1;
+      }
+    });
   }
 
   render() {
@@ -57,19 +77,20 @@ class Graph extends Component {
 
     svg.attr("width", width).attr("height", height);
 
-    const edgeJoin = svg.selectAll("g.edge").data(edges);
+    const edgeJoin = svg.selectAll("g.edge").data(edges, d => d.id);
 
     edgeJoin
       .enter()
       .append("g")
       .classed("edge", true)
-      .append("line")
+      .append("path")
+      .attr("fill", "none")
       .attr("stroke", EDGE_STROKE)
       .attr("stroke-width", EDGE_STROKE_WIDTH);
 
     edgeJoin.exit().remove();
 
-    const nodeJoin = svg.selectAll("g.node").data(nodes);
+    const nodeJoin = svg.selectAll("g.node").data(nodes, d => d.id);
 
     const nodeJoinEnter = nodeJoin
       .enter()
@@ -110,12 +131,17 @@ class Graph extends Component {
     nodeJoin.exit().remove();
 
     const updateEdges = () => {
-      svg
-        .selectAll("line")
-        .attr("x1", d => d.source.x)
-        .attr("x2", d => d.target.x)
-        .attr("y1", d => d.source.y)
-        .attr("y2", d => d.target.y);
+      svg.selectAll("path").attr("d", d => {
+        const { x: x0, y: y0 } = d.source;
+        const { x: x1, y: y1 } = d.target;
+        const [m0, m1] = geometry.midpoint([x0, y0], [x1, y1]);
+        const [v0, v1] = geometry.orthUnitVector([x1 - x0, y1 - y0]);
+        const q0 = m0 + EDGE_CURVATURE * d.groupIndex * v0;
+        const q1 = m1 + EDGE_CURVATURE * d.groupIndex * v1;
+
+        // prettier-ignore
+        return `M ${d.source.x} ${d.source.y} Q ${q0} ${q1} ${d.target.x} ${d.target.y}`;
+      });
     };
 
     const updateNodes = () => {
