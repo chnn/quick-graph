@@ -2,13 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/satori/go.uuid"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
-	"time"
 )
 
 const uiDir = "ui/build"
@@ -49,6 +48,8 @@ func main() {
 		port = "80"
 	}
 
+	log.Printf("Starting server on port %s", port)
+
 	http.ListenAndServe(":"+port, nil)
 }
 
@@ -79,7 +80,7 @@ func showGraphHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	fmt.Printf("%s\tServed graph %s.\n", time.Now().Format(time.RFC822), id)
+	log.Printf("GET /api/graphs/%s\n", id)
 }
 
 func createGraphHandler(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +106,7 @@ func createGraphHandler(w http.ResponseWriter, r *http.Request) {
 	g.ID = id
 	graphs[id] = g
 
-	fmt.Printf("%s\tCreated graph %s. Now storing %d graphs.\n", time.Now().Format(time.RFC822), id, len(graphs))
+	log.Printf("POST /api/graphs; len(graphs) = %d\n", len(graphs))
 
 	w.WriteHeader(http.StatusCreated)
 
