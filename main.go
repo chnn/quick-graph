@@ -12,16 +12,18 @@ import (
 
 const uiDir = "ui/build"
 
+type NodeID string
+
 type Node struct {
-	ID   string `json:"id"`
+	ID   NodeID `json:"id"`
 	Name string `json:"name,omitempty"`
 }
 
 type Edge struct {
 	ID     string `json:"id"`
 	Name   string `json:"name,omitempty"`
-	Source *Node  `json:"source"`
-	Target *Node  `json:"target"`
+	Source NodeID `json:"source"`
+	Target NodeID `json:"target"`
 }
 
 type Graph struct {
@@ -98,6 +100,7 @@ func createGraphHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.Unmarshal(body, g); err != nil {
+		log.Println("POST /api/graphs; 422 Unprocessable Entity")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}

@@ -45,11 +45,7 @@ class Graph extends Component {
       throw new Error("No element to render into");
     }
 
-    const nodes = this.props.nodes;
-    const edges = this.props.edges.map(e => {
-      // FIXME
-      return { source: e.source.id, target: e.target.id };
-    });
+    const { nodes, edges } = this.props;
     const width = this.canvas.parentElement.offsetWidth;
     const height = this.canvas.parentElement.offsetHeight;
     const context = this.canvas.getContext("2d");
