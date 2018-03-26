@@ -6,4 +6,4 @@
 *.test
 *.out
 vendor
-quick-graph
+main

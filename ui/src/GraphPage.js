@@ -13,9 +13,9 @@ class GraphPage extends Component {
 
   async componentWillMount() {
     const { id } = this.props.match.params;
-    const resp = await fetchGraph(id);
+    const graph = await fetchGraph(id);
 
-    this.setState({ graph: resp.data });
+    this.setState({ graph });
   }
 
   render() {

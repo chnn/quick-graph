@@ -45,7 +45,11 @@ class Graph extends Component {
       throw new Error("No element to render into");
     }
 
-    const { nodes, edges } = this.props;
+    const nodes = this.props.nodes;
+    const edges = this.props.edges.map(e => {
+      // FIXME
+      return { source: e.source.id, target: e.target.id };
+    });
     const width = this.canvas.parentElement.offsetWidth;
     const height = this.canvas.parentElement.offsetHeight;
     const context = this.canvas.getContext("2d");
@@ -82,7 +86,7 @@ class Graph extends Component {
       context.strokeStyle = NODE_STROKE;
 
       nodes.forEach(node => {
-        const label = node.label || node.id;
+        const label = node.name || node.id;
         const { width } = context.measureText(label);
 
         const rect = [
