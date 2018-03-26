@@ -1,6 +1,6 @@
 cd ui
 yarn build
 cd ..
-GOOS=linux GOARCH=amd64 go build main.go
+GOOS=linux GOARCH=amd64 go build
 scp -r ./ui/build root@quick-graph:/quick-graph/ui
-scp ./main root@quick-graph:/quick-graph
+scp ./quick-graph root@quick-graph:/quick-graph
