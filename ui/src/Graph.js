@@ -7,7 +7,7 @@ import * as geometry from "./geometry";
 import "./Graph.css";
 
 const NODE_PADDING = 4;
-const NODE_DISTANCE = 80;
+const NODE_DISTANCE = 100;
 const NODE_FILL = "#dfe6e9";
 const NODE_STROKE = "#636e72";
 const NODE_STROKE_WIDTH = 1;
@@ -22,6 +22,28 @@ const truncate = (text, k = 5) => {
   }
 
   return `${text.slice(0, k)}...`;
+};
+
+const extentBy = (xs, key = x => x) => {
+  let min, max;
+  let minValue = Infinity;
+  let maxValue = -Infinity;
+
+  for (const x of xs) {
+    const value = key(x);
+
+    if (value > maxValue) {
+      max = x;
+      maxValue = value;
+    }
+
+    if (value < minValue) {
+      min = x;
+      minValue = value;
+    }
+  }
+
+  return [min, max];
 };
 
 class Graph extends Component {
@@ -80,14 +102,25 @@ class Graph extends Component {
 
     const edgeJoin = svg.selectAll("g.edge").data(edges, d => d.id);
 
-    edgeJoin
+    const edgeJoinEnter = edgeJoin
       .enter()
       .append("g")
-      .classed("edge", true)
+      .classed("edge", true);
+
+    edgeJoinEnter
       .append("path")
+      .attr("id", d => d.id)
       .attr("fill", "none")
       .attr("stroke", EDGE_STROKE)
       .attr("stroke-width", EDGE_STROKE_WIDTH);
+
+    edgeJoinEnter
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("fill", NODE_TEXT_FILL)
+      .append("textPath")
+      .attr("xlink:href", d => `#${d.id}`)
+      .text(d => truncate(d.name || d.id, 6));
 
     edgeJoin.exit().remove();
 
@@ -108,9 +141,6 @@ class Graph extends Component {
       .append("text")
       .attr("text-anchor", "middle")
       .attr("alignment-baseline", "middle")
-      .attr("font-family", "Helvetica, sans-serif")
-      .attr("font-size", "12px")
-      .attr("font-weight", "bold")
       .attr("fill", NODE_TEXT_FILL)
       .text(d => truncate(d.name || d.id))
       .each(function(d) {
@@ -132,25 +162,38 @@ class Graph extends Component {
     nodeJoin.exit().remove();
 
     const updateEdges = () => {
-      svg.selectAll("path").attr("d", d => {
-        const { x: x0, y: y0 } = d.source;
-        const { x: x1, y: y1 } = d.target;
-        const [m0, m1] = geometry.midpoint([x0, y0], [x1, y1]);
-        const [v0, v1] = geometry.orthUnitVector([x1 - x0, y1 - y0]);
-        const q0 = m0 + EDGE_CURVATURE * d.groupIndex * v0;
-        const q1 = m1 + EDGE_CURVATURE * d.groupIndex * v1;
+      svg
+        .selectAll(".edge path")
+        .attr("d", d => {
+          const { x: x0, y: y0 } = d.source;
+          const { x: x1, y: y1 } = d.target;
+          const [m0, m1] = geometry.midpoint([x0, y0], [x1, y1]);
+          const [v0, v1] = geometry.orthUnitVector([x1 - x0, y1 - y0]);
+          const q0 = m0 + EDGE_CURVATURE * d.groupIndex * v0;
+          const q1 = m1 + EDGE_CURVATURE * d.groupIndex * v1;
+          const [startPoint, endPoint] = extentBy(
+            [d.source, d.target],
+            p => p.x
+          );
 
-        // prettier-ignore
-        return `M ${d.source.x} ${d.source.y} Q ${q0} ${q1} ${d.target.x} ${d.target.y}`;
-      });
+          // prettier-ignore
+          return `M ${startPoint.x} ${startPoint.y} Q ${q0} ${q1} ${endPoint.x} ${endPoint.y}`;
+        })
+        .each(function(d) {
+          d.pathLength = this.getTotalLength();
+        });
+
+      svg
+        .selectAll(".edge textPath")
+        .attr("startOffset", d => d.pathLength / 2);
     };
 
     const updateNodes = () => {
       svg
-        .selectAll("g.node")
+        .selectAll(".node")
         .select("rect")
         .attr("x", d => d.x - d.width / 2 - NODE_PADDING)
-        .attr("y", d => d.y - d.height - NODE_PADDING / 2);
+        .attr("y", d => d.y - d.height / 2 - NODE_PADDING);
 
       svg
         .selectAll("text")
