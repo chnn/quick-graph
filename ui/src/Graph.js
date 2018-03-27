@@ -4,6 +4,7 @@ import React, { Component } from "react";
 import * as d3 from "d3";
 import debounce from "lodash/debounce";
 import * as geometry from "./geometry";
+import "./Graph.css";
 
 const NODE_PADDING = 4;
 const NODE_DISTANCE = 80;
@@ -13,7 +14,7 @@ const NODE_STROKE_WIDTH = 1;
 const NODE_TEXT_FILL = "#2d3436";
 const EDGE_STROKE = "#636e72";
 const EDGE_STROKE_WIDTH = 1;
-const EDGE_CURVATURE = 30;
+const EDGE_CURVATURE = 40;
 
 const truncate = (text, k = 5) => {
   if (text.length < k + 2) {
@@ -175,6 +176,26 @@ class Graph extends Component {
 
     simulation.nodes(nodes).on("tick", onTick);
     simulation.force("edge").links(edges);
+
+    const drag = d3
+      .drag()
+      .on("start", d => {
+        if (!d3.event.active) {
+          simulation.alphaTarget(0.3).restart();
+        }
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on("drag", d => {
+        d.fx = d3.event.x;
+        d.fy = d3.event.y;
+      })
+      .on("end", d => {
+        d.fx = null;
+        d.fx = null;
+      });
+
+    svg.selectAll(".node").call(drag);
   }
 }
 

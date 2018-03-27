@@ -1,0 +1,3 @@
+.Graph > svg .node {
+  cursor: grab;
+}
