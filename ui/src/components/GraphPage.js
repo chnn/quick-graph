@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import "./GraphPage.css";
 import Graph from "./Graph";
 import LoadingSpinner from "./LoadingSpinner";
-import { fetchGraph } from "./api";
+import { fetchGraph } from "../api";
 
 class GraphPage extends Component {
   constructor() {

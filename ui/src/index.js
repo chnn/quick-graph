@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
-import GraphPage from "./GraphPage";
+import GraphPage from "./components/GraphPage";
 import { BrowserRouter as Router, Route } from "react-router-dom";
 
 ReactDOM.render(

@@ -3,7 +3,7 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
 import debounce from "lodash/debounce";
-import * as geometry from "./geometry";
+import { truncate, extentBy, midpoint, orthUnitVector } from "../utils";
 import "./Graph.css";
 
 const NODE_PADDING = 4;
@@ -15,40 +15,6 @@ const NODE_TEXT_FILL = "#2d3436";
 const EDGE_STROKE = "#636e72";
 const EDGE_STROKE_WIDTH = 1;
 const EDGE_CURVATURE = 40;
-
-const truncate = (text, k = 5) => {
-  if (!text) {
-    return "";
-  }
-
-  if (text.length < k + 2) {
-    return text;
-  }
-
-  return `${text.slice(0, k)}...`;
-};
-
-const extentBy = (xs, key = x => x) => {
-  let min, max;
-  let minValue = Infinity;
-  let maxValue = -Infinity;
-
-  for (const x of xs) {
-    const value = key(x);
-
-    if (value > maxValue) {
-      max = x;
-      maxValue = value;
-    }
-
-    if (value < minValue) {
-      min = x;
-      minValue = value;
-    }
-  }
-
-  return [min, max];
-};
 
 class Graph extends Component {
   constructor() {
@@ -199,8 +165,8 @@ class Graph extends Component {
         .attr("d", d => {
           const { x: x0, y: y0 } = d.source;
           const { x: x1, y: y1 } = d.target;
-          const [m0, m1] = geometry.midpoint([x0, y0], [x1, y1]);
-          const [v0, v1] = geometry.orthUnitVector([x1 - x0, y1 - y0]);
+          const [m0, m1] = midpoint([x0, y0], [x1, y1]);
+          const [v0, v1] = orthUnitVector([x1 - x0, y1 - y0]);
           const q0 = m0 + EDGE_CURVATURE * d.groupIndex * v0;
           const q1 = m1 + EDGE_CURVATURE * d.groupIndex * v1;
           const [startPoint, endPoint] = extentBy(

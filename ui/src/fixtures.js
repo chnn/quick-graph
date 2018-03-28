@@ -1,4 +1,5 @@
-export default {
+export const GRAPH_FIXTURE = {
+  name: "Les Misérables",
   nodes: [
     { id: "Myriel", group: 1 },
     { id: "Napoleon", group: 1 },
