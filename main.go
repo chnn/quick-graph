@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
 	"github.com/satori/go.uuid"
 	"io/ioutil"
@@ -36,20 +37,27 @@ type Graph struct {
 var graphs = make(map[string]*Graph)
 
 func main() {
+	db, err := bolt.Open("graphs.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("graphs"))
+		return err
+	})
+
 	r := mux.NewRouter()
-
-	r.HandleFunc("/api/graphs", createGraphHandler).Methods("POST")
-	r.HandleFunc("/api/graphs/{id}", showGraphHandler).Methods("GET")
+	r.HandleFunc("/api/graphs", createGraphHandler(db)).Methods("POST")
+	r.HandleFunc("/api/graphs/{id}", showGraphHandler(db)).Methods("GET")
 	r.PathPrefix("/").Handler(http.HandlerFunc(catchAllHandler))
-
 	http.Handle("/", r)
 
 	port, portExists := os.LookupEnv("PORT")
-
 	if !portExists {
 		port = "80"
 	}
-
 	log.Printf("Starting server on port %s", port)
 
 	http.ListenAndServe(":"+port, nil)
@@ -65,55 +73,77 @@ func catchAllHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func showGraphHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+func showGraphHandler(db *bolt.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-	id := mux.Vars(r)["id"]
-	g, exists := graphs[id]
+		id := mux.Vars(r)["id"]
 
-	if !exists {
-		http.NotFound(w, r)
-		return
+		db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("graphs"))
+			g := b.Get([]byte(id))
+
+			if g == nil {
+				http.NotFound(w, r)
+				return nil
+			}
+
+			w.WriteHeader(http.StatusOK)
+
+			if err := json.NewEncoder(w).Encode(g); err != nil {
+				panic(err)
+			}
+
+			log.Printf("GET /api/graphs/%s\n", id)
+
+			return nil
+		})
 	}
-
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(g); err != nil {
-		panic(err)
-	}
-
-	log.Printf("GET /api/graphs/%s\n", id)
 }
 
-func createGraphHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+func createGraphHandler(db *bolt.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-	g := new(Graph)
-	body, err := ioutil.ReadAll(r.Body)
+		g := new(Graph)
+		body, err := ioutil.ReadAll(r.Body)
 
-	if err != nil {
-		panic(err)
-	}
+		if err != nil {
+			panic(err)
+		}
 
-	if err := r.Body.Close(); err != nil {
-		panic(err)
-	}
+		if err := r.Body.Close(); err != nil {
+			panic(err)
+		}
 
-	if err := json.Unmarshal(body, g); err != nil {
-		log.Println("POST /api/graphs; 422 Unprocessable Entity")
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
+		if err := json.Unmarshal(body, g); err != nil {
+			log.Println("POST /api/graphs; 422 Unprocessable Entity")
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
 
-	id := uuid.NewV4().String()
-	g.ID = id
-	graphs[id] = g
+		id := uuid.NewV4().String()
+		g.ID = id
 
-	log.Printf("POST /api/graphs; len(graphs) = %d\n", len(graphs))
+		db.Update(func(tx *bolt.Tx) error {
+			buf, err := json.Marshal(g)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
 
-	w.WriteHeader(http.StatusCreated)
+			log.Println(buf)
 
-	if err := json.NewEncoder(w).Encode(g); err != nil {
-		panic(err)
+			b := tx.Bucket([]byte("graphs"))
+			return b.Put([]byte(id), buf)
+		})
+
+		log.Printf("POST /api/graphs; len(graphs) = %d\n", len(graphs))
+
+		w.WriteHeader(http.StatusCreated)
+
+		if err := json.NewEncoder(w).Encode(g); err != nil {
+			panic(err)
+		}
 	}
 }
