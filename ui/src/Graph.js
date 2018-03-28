@@ -17,6 +17,10 @@ const EDGE_STROKE_WIDTH = 1;
 const EDGE_CURVATURE = 40;
 
 const truncate = (text, k = 5) => {
+  if (!text) {
+    return "";
+  }
+
   if (text.length < k + 2) {
     return text;
   }
@@ -47,24 +51,49 @@ const extentBy = (xs, key = x => x) => {
 };
 
 class Graph extends Component {
+  constructor() {
+    super(...arguments);
+
+    this.state = {
+      nodes: [],
+      edges: []
+    };
+  }
+
   windowDidResize = debounce(this.renderD3.bind(this), 100);
 
   componentDidMount() {
-    // FIXME: Should clone props, then mutate and setState
-    this.prepareGraphData(this.props);
-    this.renderD3();
     window.addEventListener("resize", this.windowDidResize);
+
+    this.prepareGraphData(this.props);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    this.prepareGraphData(nextProps);
+  }
+
+  componentDidUpdate() {
+    this.renderD3();
   }
 
   componentWillUnmount() {
     window.removeEventListener("resize", this.windowDidResize);
   }
 
-  prepareGraphData({ edges }) {
+  prepareGraphData(props) {
+    const { nodes, edges } = props;
+
+    const newNodes = nodes.map(n => {
+      return { id: n.id, name: n.name };
+    });
+
     const edgeGroupIndices = {};
     const edgeKey = edge => `(${edge.source}, ${edge.target})`;
+    const newEdges = edges.map(({ source, target, id, name }) => {
+      return { source, target, id, name };
+    });
 
-    edges.forEach(edge => {
+    newEdges.forEach(edge => {
       const k = edgeKey(edge);
       const a = edgeGroupIndices[k] || 0;
 
@@ -78,6 +107,8 @@ class Graph extends Component {
         edgeGroupIndices[k] = Math.abs(a) + 1;
       }
     });
+
+    this.setState({ nodes: newNodes, edges: newEdges });
   }
 
   render() {
@@ -93,7 +124,7 @@ class Graph extends Component {
       throw new Error("No element to render into");
     }
 
-    const { nodes, edges } = this.props;
+    const { nodes, edges } = this.state;
     const width = this.svg.parentElement.offsetWidth;
     const height = this.svg.parentElement.offsetHeight;
     const svg = d3.select(this.svg);
@@ -147,8 +178,9 @@ class Graph extends Component {
         const { width, height } = this.getBBox();
 
         // Capture width and height of text node for future calculations.
-        // Mutating the datum for a selection is wack af, but it's already
-        // done quite liberally by d3-force ¯\_(ツ)_/¯
+        // Mutating the datum for a selection is wack af, but it's already done
+        // quite liberally by d3-force ¯\_(ツ)_/¯. We do this again in a few
+        // other places.
         d.width = width;
         d.height = height;
       });
